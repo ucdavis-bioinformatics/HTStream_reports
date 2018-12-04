@@ -3,11 +3,14 @@ title: "Preproc mapping stats for Kol - Questa, ATAC Seq Canine"
 output: html_notebook
 ---
 
+```{r setup}
+knitr::opts_knit$set(root.dir = "/share/biocore/joshi/projects/Iyer_S_UCD/2018_Rhesus_Batch_TagSeq")
+```
 
 ```{r}
 
 ### SETTINGS ###
-working_dir = "/share/biocore/joshi/projects/Kol_A_UCD/Questa_ATAC_Seq_Canine_FULL"
+working_dir = "/share/biocore/joshi/projects/Iyer_S_UCD/2018_Rhesus_Batch_TagSeq"
 preproc_dir = "01-Cleaned"
 mapping_dir = "02-STAR"
 # none, first, second
@@ -68,6 +71,8 @@ cnames = unlist(lapply(cnames, function(x) c(paste(x,"input"), paste(x,"output")
 counts_all = sapply(sample_dirs,process_counts,colnum=strandcol[strandedness,])
 counts = read.table(paste0(mapping_dir,"/",sample_dirs[1],"/",sample_dirs[1],".ReadsPerGene.out.tab"),row.names = 1,skip = 4,sep='\t',stringsAsFactors = F)
 rownames(counts_all) = rownames(counts)
+
+write.table(counts_all,file="counts_all.out",sep='\t',quote=F,row.names=T)
 
 rmg = as.matrix(colSums(counts_all), ncol=1)
 mr = as.matrix(as.integer(final_stats[,length(cnames)+1]), ncol=1)
