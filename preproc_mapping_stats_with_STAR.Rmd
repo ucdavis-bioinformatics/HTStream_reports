@@ -5,7 +5,7 @@ output: html_notebook
 
 ```{r}
 ### SETTINGS ###
-working_dir = "/share/biocore/joshi/projects/Iyer_S_UCD/2018_Rhesus_Batch_TagSeq"
+working_dir = "/share/biocore/joshi/projects/Kol_A_UCD/Questa_ATAC_Seq_Canine_FULL/3rd_library"
 preproc_dir = "01-Cleaned"
 mapping_dir = "02-STAR"
 # none, first, second
@@ -84,7 +84,9 @@ final_stats = cbind(final_stats,rmg,perc_rmg)
 colnames(final_stats) = c(cnames,"Uniquely Mapped Reads","Uniquely Mapped Perc","Multi-Mapped Reads","Multi-Mapped Perc","Reads Mapped to Genes","Perc Reads Mapped to Genes")
 
 ###################
+```
 
+```{r}
 kable(final_stats[,1:6]) %>% kable_styling(bootstrap_options = c("striped", "hover"))
 
 ```
