@@ -13,11 +13,11 @@ strandedness = "first"
 ######################
 ```
 
-```{r setup}
+```{r setup, echo=FALSE}
 knitr::opts_knit$set(root.dir = working_dir)
 ```
 
-```{r}
+```{r, echo=FALSE}
 
 strandcol = matrix(1:3,ncol=1)
 rownames(strandcol) = c("none","first","second")
@@ -28,8 +28,6 @@ library(jsonlite)
 library(readr)
 library(stringr)
 library(edgeR)
-
-setwd(working_dir)
 
 process_json <- function(sdir) { 
     json <- fromJSON(paste0(preproc_dir,"/",sdir,"/",sdir,".stats.log"))
@@ -60,7 +58,7 @@ process_counts <- function(sid, colnum) {
 }
 ```
 
-```{r}
+```{r, echo=FALSE}
 ###################
 sample_dirs = list.dirs(preproc_dir,full.names = F, recursive = F)
 
@@ -86,27 +84,21 @@ colnames(final_stats) = c(cnames,"Uniquely Mapped Reads","Uniquely Mapped Perc",
 ###################
 ```
 
-```{r}
-kable(final_stats[,1:6]) %>% kable_styling(bootstrap_options = c("striped", "hover"))
-
+```{r, echo=FALSE}
+numcol = dim(final_stats)[2]
+step=6
+for (i in seq(1,numcol,step)) {
+  if (i+step-1 <= numcol) {
+    endcol <- i+step-1
+  } else {
+    endcol <- numcol
+  }
+  
+  print(kable(final_stats[,i:endcol]) %>% kable_styling(bootstrap_options = c("striped", "hover")))
+}
 ```
 
-
-```{r}
-kable(final_stats[,7:12]) %>% kable_styling(bootstrap_options = c("striped", "hover"))
-
-```
-
-```{r}
-kable(final_stats[,13:18]) %>% kable_styling(bootstrap_options = c("striped", "hover"))
-
-```
-
-```{r}
-kable(final_stats[,19:22]) %>% kable_styling(bootstrap_options = c("striped", "hover"))
-```
-
-```{r}
+```{r, echo=FALSE}
 countdge = DGEList(counts_all)
 countdge = calcNormFactors(countdge)
 plotMDS(countdge, main="MDS Plot")

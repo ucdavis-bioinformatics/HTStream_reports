@@ -3,15 +3,19 @@ title: "Preproc mapping stats for Kol - Questa, ATAC Seq Canine"
 output: html_notebook
 ---
 
-
 ```{r}
-
 ### SETTINGS ###
-working_dir = "/share/biocore/joshi/projects/Kol_A_UCD/Questa_ATAC_Seq_Canine_FULL"
-preproc_dir = "01-HTS_Preproc"
+working_dir = "/share/biocore/joshi/projects/Kol_A_UCD/Questa_ATAC_Seq_Canine_FULL/3rd_library"
+preproc_dir = "01-Cleaned"
 mapping_dir = "02-BWA"
 ######################
+```
 
+```{r setup, echo=FALSE}
+knitr::opts_knit$set(root.dir = working_dir)
+```
+
+```{r, echo=FALSE}
 library(knitr)
 library(kableExtra)
 library(jsonlite)
@@ -19,10 +23,8 @@ library(readr)
 library(stringr)
 library(edgeR)
 
-setwd(working_dir)
-
 process_json <- function(sdir) { 
-    json <- fromJSON(paste0(preproc_dir,"/",sdir,"/",sdir,"_htsStats.log"))
+    json <- fromJSON(paste0(preproc_dir,"/",sdir,"/",sdir,".stats.log"))
     
     infrag = unlist(lapply(names(json), function(x) json[[x]]$totalFragmentsInput))
     outfrag = unlist(lapply(names(json), function(x) json[[x]]$totalFragmentsOutput))
@@ -32,7 +34,7 @@ process_json <- function(sdir) {
     
     stats = matrix(c(rbind(infrag,outfrag,perc)), nrow=1)
     
-    logfinal = read_file(paste0(mapping_dir,"/",sdir,"/",sdir,"-CanFam3-bwa.bam.flagstat"))
+    logfinal = read_file(paste0(mapping_dir,"/",sdir,"/",sdir,".ALL.flagstat"))
     #lfall = str_match_all(logfinal,"Uniquely mapped reads number \\|\\t(\\d+)\\n.+Uniquely mapped reads \\% \\|\\t(.+\\%)")
     lfall = str_match_all(logfinal,"(\\d+) \\+ 0 mapped \\((.+\\%) :")
     
@@ -45,25 +47,24 @@ process_json <- function(sdir) {
 }
 
 process_counts <- function(sid, colnum) {
-  counts = read.table(paste0(mapping_dir,"/",sid,"/",sid,"-CanFam3-bwa.counts"),row.names = 1,sep='\t',stringsAsFactors = F,header = F,skip=3)
+  counts = read.table(paste0(mapping_dir,"/",sid,"/",sid,".ALL.counts"),row.names = 1,sep='\t',stringsAsFactors = F,header = F,skip=3)
   counts = counts[,6]
   return(counts)
 }
 ```
 
-```{r}
+```{r, echo=FALSE}
 ###################
-setwd(working_dir)
 sample_dirs = list.dirs(preproc_dir,full.names = F, recursive = F)
 
 final_stats = t(sapply(sample_dirs, process_json))
 
-json <- fromJSON(paste0(preproc_dir,"/",sample_dirs[1],"/",sample_dirs[1],"_htsStats.log"))
+json <- fromJSON(paste0(preproc_dir,"/",sample_dirs[1],"/",sample_dirs[1],".stats.log"))
 cnames = gsub("_\\d+","",names(json))
 cnames = unlist(lapply(cnames, function(x) c(paste(x,"input"), paste(x,"output"), paste(x,"perc"))))
 
 counts_all = sapply(sample_dirs,process_counts)
-counts = read.table(paste0(mapping_dir,"/",sample_dirs[1],"/",sample_dirs[1],"-CanFam3-bwa.counts"),row.names = 1,sep='\t',stringsAsFactors = F,header=F,skip=3)
+counts = read.table(paste0(mapping_dir,"/",sample_dirs[1],"/",sample_dirs[1],".ALL.counts"),row.names = 1,sep='\t',stringsAsFactors = F,header=F,skip=3)
 rownames(counts_all) = rownames(counts)
 
 rmg = as.matrix(colSums(counts_all), ncol=1)
@@ -74,27 +75,24 @@ final_stats = cbind(final_stats,rmg,perc_rmg)
 colnames(final_stats) = c(cnames,"Mapped Reads","Mapped Perc","Reads Mapped to Genes","Perc Reads Mapped to Genes")
 
 ###################
+```
 
-kable(final_stats[,1:6]) %>% kable_styling(bootstrap_options = c("striped", "hover"))
-
+```{r, echo=FALSE}
+numcol = dim(final_stats)[2]
+step=6
+for (i in seq(1,numcol,step)) {
+  if (i+step-1 <= numcol) {
+    endcol <- i+step-1
+  } else {
+    endcol <- numcol
+  }
+  
+  print(kable(final_stats[,i:endcol]) %>% kable_styling(bootstrap_options = c("striped", "hover")))
+}
 ```
 
 
-```{r}
-kable(final_stats[,7:12]) %>% kable_styling(bootstrap_options = c("striped", "hover"))
-
-```
-
-```{r}
-kable(final_stats[,13:18]) %>% kable_styling(bootstrap_options = c("striped", "hover"))
-
-```
-
-```{r}
-kable(final_stats[,19:28]) %>% kable_styling(bootstrap_options = c("striped", "hover"))
-```
-
-```{r}
+```{r, echo=FALSE}
 countdge = DGEList(counts_all)
 countdge = calcNormFactors(countdge)
 plotMDS(countdge, main="MDS Plot")
