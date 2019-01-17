@@ -1,0 +1,81 @@
+---
+title: "Preproc mapping stats for Kol - Questa, ATAC Seq Canine"
+output: html_notebook
+---
+
+```{r}
+### SETTINGS ###
+working_dir = "/share/biocore/joshi/projects/Kol_A_UCD/Questa_ATAC_Seq_Canine_FULL/3rd_library"
+preproc_dir = "01-Cleaned"
+mapping_dir = "02-STAR"
+# none, first, second
+strandedness = "first"
+######################
+```
+
+```{r setup, echo=FALSE}
+knitr::opts_knit$set(root.dir = working_dir)
+```
+
+```{r, echo=FALSE}
+
+strandcol = matrix(1:3,ncol=1)
+rownames(strandcol) = c("none","first","second")
+
+library(knitr)
+library(kableExtra)
+library(jsonlite)
+library(readr)
+library(stringr)
+library(edgeR)
+
+process_json <- function(sdir) { 
+    json <- fromJSON(paste0(preproc_dir,"/",sdir,"/",sdir,".stats.log"))
+    
+    infrag = unlist(lapply(names(json), function(x) json[[x]]$totalFragmentsInput))
+    outfrag = unlist(lapply(names(json), function(x) json[[x]]$totalFragmentsOutput))
+    
+    perc = (outfrag/infrag)*100
+    perc = sprintf("%.02f%%",perc)
+    
+    stats = matrix(c(rbind(infrag,outfrag,perc)), nrow=1)
+    
+    logfinal = read_file(paste0(mapping_dir,"/",sdir,"/",sdir,".Log.final.out"))
+    lfall = str_match_all(logfinal,"(?s)Uniquely mapped reads number \\|\\t(\\d+)\\n.+Uniquely mapped reads \\% \\|\\t(.+?\\%).+Number of reads mapped to multiple loci \\|\\t(\\d+)\\n.+\\% of reads mapped to multiple loci \\|\\t(.+?\\%)")
+    
+    lfm = matrix(c(lfall[[1]][,2], lfall[[1]][,3], lfall[[1]][,4], lfall[[1]][,5]), nrow=1)
+    
+    stats = cbind(stats,lfm)
+    rownames(stats) = c(sdir)
+    
+    return(stats)
+}
+```
+
+```{r, echo=FALSE}
+###################
+sample_dirs = list.dirs(preproc_dir,full.names = F, recursive = F)
+
+final_stats = t(sapply(sample_dirs, process_json))
+
+json <- fromJSON(paste0(preproc_dir,"/",sample_dirs[1],"/",sample_dirs[1],".stats.log"))
+cnames = gsub("_\\d+","",names(json))
+cnames = unlist(lapply(cnames, function(x) c(paste(x,"input"), paste(x,"output"), paste(x,"perc"))))
+
+colnames(final_stats) = cnames
+###################
+```
+
+```{r, echo=FALSE}
+numcol = dim(final_stats)[2]
+step=6
+for (i in seq(1,numcol,step)) {
+  if (i+step-1 <= numcol) {
+    endcol <- i+step-1
+  } else {
+    endcol <- numcol
+  }
+  
+  print(kable(final_stats[,i:endcol]) %>% kable_styling(bootstrap_options = c("striped", "hover")))
+}
+```
