@@ -15,10 +15,6 @@ knitr::opts_knit$set(root.dir = working_dir)
 ```
 
 ```{r, echo=FALSE}
-
-strandcol = matrix(1:3,ncol=1)
-rownames(strandcol) = c("none","first","second")
-
 library(knitr)
 library(kableExtra)
 library(jsonlite)
