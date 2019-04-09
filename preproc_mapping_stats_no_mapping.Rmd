@@ -3,7 +3,7 @@ title: "Preproc mapping stats for UMI testing"
 output: html_notebook
 ---
 
-```{r}
+```{r, echo=FALSE}
 ### SETTINGS ###
 working_dir = "/share/biocore/joshi/projects/LaSalle_J_UCD/2018_LaSalle-Yasui_ChipSeq/test_umi"
 preproc_dir = "01-Cleaned"

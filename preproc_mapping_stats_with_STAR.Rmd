@@ -3,7 +3,7 @@ title: "Preproc mapping stats for Kol - Questa, ATAC Seq Canine"
 output: html_notebook
 ---
 
-```{r}
+```{r, echo=FALSE}
 ### SETTINGS ###
 working_dir = "/share/biocore/joshi/projects/Kol_A_UCD/Questa_ATAC_Seq_Canine_FULL/3rd_library"
 preproc_dir = "01-Cleaned"
