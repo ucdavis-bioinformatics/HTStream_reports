@@ -28,7 +28,7 @@ process_json <- function(sdir) {
     infrag = unlist(lapply(names(json), function(x) json[[x]]$totalFragmentsInput))
     outfrag = unlist(lapply(names(json), function(x) json[[x]]$totalFragmentsOutput))
     
-    perc = (outfrag/infrag)*100
+    perc = (outfrag/infrag[1])*100
     perc = sprintf("%.02f%%",perc)
     
     stats = matrix(c(rbind(infrag,outfrag,perc)), nrow=1)

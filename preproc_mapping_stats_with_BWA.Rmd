@@ -29,7 +29,7 @@ process_json <- function(sdir) {
     infrag = unlist(lapply(names(json), function(x) json[[x]]$totalFragmentsInput))
     outfrag = unlist(lapply(names(json), function(x) json[[x]]$totalFragmentsOutput))
     
-    perc = (outfrag/infrag)*100
+    perc = (outfrag/infrag[1])*100
     perc = sprintf("%.02f%%",perc)
     
     stats = matrix(c(rbind(infrag,outfrag,perc)), nrow=1)
@@ -68,7 +68,7 @@ counts = read.table(paste0(mapping_dir,"/",sample_dirs[1],"/",sample_dirs[1],".A
 rownames(counts_all) = rownames(counts)
 
 rmg = as.matrix(colSums(counts_all), ncol=1)
-mr = as.matrix(as.integer(final_stats[,length(cnames)-1]), ncol=1)
+mr = as.matrix(as.integer(final_stats[,1]), ncol=1)
 perc_rmg = as.matrix(sprintf("%.02f%%", (rmg / mr) * 100), ncol=1)
 
 final_stats = cbind(final_stats,rmg,perc_rmg)
