@@ -1,15 +1,18 @@
 ---
-title: "Preproc mapping stats for Kol - Questa, ATAC Seq Canine"
+title: "Preproc mapping stats for Dickinson - Choroid Plexus"
 output: html_notebook
 ---
 
+## <u>**Preprocessing & Mapping stats**</u>
+
+
 ```{r, echo=FALSE}
 ### SETTINGS ###
-working_dir = "/share/biocore/joshi/projects/Kol_A_UCD/Questa_ATAC_Seq_Canine_FULL/3rd_library"
+working_dir = "/share/biocore/joshi/projects/Dickinson_P_UCDVM/2019_choroid_plexus"
 preproc_dir = "01-Cleaned"
 mapping_dir = "02-STAR"
 # none, first, second
-strandedness = "first"
+strandedness = "none"
 ######################
 ```
 
@@ -35,7 +38,7 @@ process_json <- function(sdir) {
     infrag = unlist(lapply(names(json), function(x) json[[x]]$totalFragmentsInput))
     outfrag = unlist(lapply(names(json), function(x) json[[x]]$totalFragmentsOutput))
     
-    perc = (outfrag/infrag)*100
+    perc = (outfrag/infrag[1])*100
     perc = sprintf("%.02f%%",perc)
     
     stats = matrix(c(rbind(infrag,outfrag,perc)), nrow=1)
@@ -61,7 +64,6 @@ process_counts <- function(sid, colnum) {
 ```{r, echo=FALSE}
 ###################
 sample_dirs = list.dirs(preproc_dir,full.names = F, recursive = F)
-
 final_stats = t(sapply(sample_dirs, process_json))
 
 json <- fromJSON(paste0(preproc_dir,"/",sample_dirs[1],"/",sample_dirs[1],".stats.log"))
@@ -75,7 +77,7 @@ rownames(counts_all) = rownames(counts)
 write.table(counts_all,file="counts_all.out",sep='\t',quote=F,row.names=T)
 
 rmg = as.matrix(colSums(counts_all), ncol=1)
-mr = as.matrix(as.integer(final_stats[,length(cnames)+1]), ncol=1)
+mr = as.matrix(as.integer(final_stats[,1]), ncol=1)
 perc_rmg = as.matrix(sprintf("%.02f%%", (rmg / mr) * 100), ncol=1)
 
 final_stats = cbind(final_stats,rmg,perc_rmg)
