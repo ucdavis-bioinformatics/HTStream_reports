@@ -52,6 +52,22 @@ colnames(final_stats) = cnames
 ###################
 ```
 
+## <u>**Preprocessing & Mapping stats**</u>
+Preprocessing was done using the [HTStream](https://ibest.github.io/HTStream/) software. The table below shows the number of reads input and output at each step as well as the percentage of reads left (based on the initial input amount). Here are explantions of the various possible steps in your output (Note, your output will not contain every one of these steps):
+
+* hts_AdapterTrimmer: Trims adapters which are sequenced when the fragment insert length is shorter than the read length.
+* hts_CutTrim: Trims a fixed number of bases from the 5' and/or 3' end of each read.
+* hts_Overlapper: Overlaps paired end reads to produce the original fragment, trims adapters, and can correct sequencing errors.
+* hts_QWindowTrim: Uses a sliding window approach to remove the low quality ends of reads.
+* hts_Stats: Generates an JSON formatted file containing a set of statistical measures about the input read data.
+* hts_NTrimmer: Trims reads to the longest subsequence that contains no Ns.
+* hts_PolyATTrim: Trims poly-A and poly-T sequences from the end of reads.
+* hts_SeqScreener: A simple sequence screening tool which uses a kmer lookup approach to identify reads from an unwanted source. By default it will look for reads which are likely to have come from PhiX (commonly added to Illumina sequencing runs).
+* hts_SuperDeduper: A reference free duplicate read removal tool.
+
+The "Uniquely Mapped Reads", "Uniquely Mapped Perc", "Multi-Mapped Reads", and "Multi-Mapped Perc" columns are all taken from the log files of the aligner. Finally, the "Reads Mapped to Genes", and "Perc Reads Mapped to Genes" columns are calculated from the files of count data and original input numbers.
+
+
 ```{r, echo=FALSE}
 numcol = dim(final_stats)[2]
 step=6
