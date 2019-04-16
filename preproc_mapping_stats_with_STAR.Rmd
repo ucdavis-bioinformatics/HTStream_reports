@@ -29,25 +29,59 @@ library(readr)
 library(stringr)
 library(edgeR)
 
+process_step <- function(json_step,step_name,orig_input) {
+    if (startsWith(step_name,"hts_Stats")) {
+        perc = sprintf("%.02f%%",100*json_step$totalFragmentsOutput/orig_input)
+        retval = c("Stats Input"=json_step$totalFragmentsInput, "Stats Output"=json_step$totalFragmentsOutput, "Stats Perc"=perc)
+    } else if (startsWith(step_name,"hts_SeqScreener")) {
+        if (json_step$record == 1) {
+            total_hits = json_step$Single_end$SE_hits + json_step$Paired_end$PE_hits
+            perc = sprintf("%.02f%%",100*total_hits/orig_input)
+            retval = c("SeqScreener Input"=json_step$totalFragmentsInput, "SeqScreener Recorded Contaminants"=total_hits, "Recorded Contaminants perc"=perc)
+        } else {
+            perc = sprintf("%.02f%%",100*json_step$totalFragmentsOutput/orig_input)
+            retval = c("SeqScreener Input"=json_step$totalFragmentsInput, "SeqScreener Output"=json_step$totalFragmentsOutput, "SeqScreener Perc"=perc)
+        }
+    } else if (startsWith(step_name,"hts_SuperDeduper")) {
+        perc = sprintf("%.02f%%",100*json_step$totalFragmentsOutput/orig_input)
+        retval = c("SuperDeduper Input"=json_step$totalFragmentsInput, "SuperDeduper Output"=json_step$totalFragmentsOutput, "SuperDeduper Perc"=perc)
+    } else if (startsWith(step_name,"hts_AdapterTrimmer")) {
+        perc = sprintf("%.02f%%",100*json_step$totalFragmentsOutput/orig_input)
+        retval = c("AdapterTrimmer Input"=json_step$totalFragmentsInput, "AdapterTrimmer Output"=json_step$totalFragmentsOutput, "AdapterTrimmer Perc"=perc)
+    } else if (startsWith(step_name,"hts_QWindowTrim")) {
+        perc = sprintf("%.02f%%",100*json_step$totalFragmentsOutput/orig_input)
+        retval = c("QWindowTrim Input"=json_step$totalFragmentsInput, "QWindowTrim Output"=json_step$totalFragmentsOutput, "QWindowTrim Perc"=perc)
+    } else if (startsWith(step_name,"hts_CutTrim")) {
+        perc = sprintf("%.02f%%",100*json_step$totalFragmentsOutput/orig_input)
+        retval = c("CutTrim Input"=json_step$totalFragmentsInput, "CutTrim Output"=json_step$totalFragmentsOutput, "CutTrim Perc"=perc)
+    } else if (startsWith(step_name,"hts_Overlapper")) {
+        perc = sprintf("%.02f%%",100*json_step$totalFragmentsOutput/orig_input)
+        retval = c("Overlapper Input"=json_step$totalFragmentsInput, "Overlapper Output"=json_step$totalFragmentsOutput, "Overlapper Perc"=perc)
+    } else if (startsWith(step_name,"hts_NTrimmer")) {
+        perc = sprintf("%.02f%%",100*json_step$totalFragmentsOutput/orig_input)
+        retval = c("NTrimmer Input"=json_step$totalFragmentsInput, "NTrimmer Output"=json_step$totalFragmentsOutput, "NTrimmer Perc"=perc)
+    } else if (startsWith(step_name,"hts_PolyATTrim")) {
+        perc = sprintf("%.02f%%",100*json_step$totalFragmentsOutput/orig_input)
+        retval = c("PolyATTrim Input"=json_step$totalFragmentsInput, "PolyATTrim Output"=json_step$totalFragmentsOutput, "PolyATTrim Perc"=perc)
+    }
+  
+    return(retval)
+}
+
 process_json <- function(sdir) { 
     json <- fromJSON(paste0(preproc_dir,"/",sdir,"/",sdir,".stats.log"))
     
-    infrag = unlist(lapply(names(json), function(x) json[[x]]$totalFragmentsInput))
-    outfrag = unlist(lapply(names(json), function(x) json[[x]]$totalFragmentsOutput))
+    first_step = names(json)[1]
+    orig_input = json[[first_step]]$totalFragmentsInput
     
-    perc = (outfrag/infrag[1])*100
-    perc = sprintf("%.02f%%",perc)
-    
-    stats = matrix(c(rbind(infrag,outfrag,perc)), nrow=1)
+    stats = unlist(lapply(names(json), function(x) process_step(json[[x]],x,orig_input)))
     
     logfinal = read_file(paste0(mapping_dir,"/",sdir,"/",sdir,".Log.final.out"))
     lfall = str_match_all(logfinal,"(?s)Uniquely mapped reads number \\|\\t(\\d+)\\n.+Uniquely mapped reads \\% \\|\\t(.+?\\%).+Number of reads mapped to multiple loci \\|\\t(\\d+)\\n.+\\% of reads mapped to multiple loci \\|\\t(.+?\\%)")
     
-    lfm = matrix(c(lfall[[1]][,2], lfall[[1]][,3], lfall[[1]][,4], lfall[[1]][,5]), nrow=1)
+    lfm = c("Uniquely Mapped Reads"=lfall[[1]][,2], "Uniquely Mapped Perc"=lfall[[1]][,3], "Multi-Mapped Reads"=lfall[[1]][,4], "Multi-Mapped Perc"=lfall[[1]][,5])
     
-    stats = cbind(stats,lfm)
-    rownames(stats) = c(sdir)
-    
+    stats = c(stats,lfm)
     return(stats)
 }
 
@@ -63,10 +97,6 @@ process_counts <- function(sid, colnum) {
 sample_dirs = list.dirs(preproc_dir,full.names = F, recursive = F)
 final_stats = t(sapply(sample_dirs, process_json))
 
-json <- fromJSON(paste0(preproc_dir,"/",sample_dirs[1],"/",sample_dirs[1],".stats.log"))
-cnames = gsub("_\\d+","",names(json))
-cnames = unlist(lapply(cnames, function(x) c(paste(x,"input"), paste(x,"output"), paste(x,"perc"))))
-
 counts_all = sapply(sample_dirs,process_counts,colnum=strandcol[strandedness,])
 counts = read.table(paste0(mapping_dir,"/",sample_dirs[1],"/",sample_dirs[1],".ReadsPerGene.out.tab"),row.names = 1,skip = 4,sep='\t',stringsAsFactors = F)
 rownames(counts_all) = rownames(counts)
@@ -77,8 +107,9 @@ rmg = as.matrix(colSums(counts_all), ncol=1)
 mr = as.matrix(as.integer(final_stats[,1]), ncol=1)
 perc_rmg = as.matrix(sprintf("%.02f%%", (rmg / mr) * 100), ncol=1)
 
+fscol = colnames(final_stats)
 final_stats = cbind(final_stats,rmg,perc_rmg)
-colnames(final_stats) = c(cnames,"Uniquely Mapped Reads","Uniquely Mapped Perc","Multi-Mapped Reads","Multi-Mapped Perc","Reads Mapped to Genes","Perc Reads Mapped to Genes")
+colnames(final_stats) = c(fscol,"Reads Mapped to Genes","Perc Reads Mapped to Genes")
 
 ###################
 ```
