@@ -211,6 +211,6 @@ Multidimensional scaling (MDS) is a means of visualizing the level of similarity
 countdge = DGEList(counts_all)
 countdge = calcNormFactors(countdge)
 write.table(countdge, file="counts_all.normalized.out",sep='\t',quote=F,row.names=T)
-plotMDS(countdge, main="MDS Plot")
+plotMDS(countdge, main="MDS Plot",cex=0.7)
 ```
 
