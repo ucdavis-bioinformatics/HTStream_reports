@@ -153,9 +153,6 @@ for (i in seq(1,numcol,step)) {
 
 
 ```{r}
-library(grid)
-library(gridExtra)
-
 calc_diffs <- function(input_nums,output_nums) {
     rn_len = dim(input_nums)[1]
     numsteps = dim(input_nums)[2]
