@@ -37,7 +37,7 @@ process_step <- function(json_step,step_name,orig_input) {
         if (json_step$record == 1) {
             total_hits = json_step$Single_end$SE_hits + json_step$Paired_end$PE_hits
             perc = sprintf("%.02f%%",100*total_hits/orig_input)
-            retval = c("SeqScreener Input"=json_step$totalFragmentsInput, "SeqScreener Recorded Contaminants"=total_hits, "Recorded Contaminants perc"=perc)
+            retval = c("SeqScreener Reads"=json_step$totalFragmentsInput, "SeqScreener Recorded Contaminants"=total_hits, "Perc Recorded Contaminants"=perc)
         } else {
             perc = sprintf("%.02f%%",100*json_step$totalFragmentsOutput/orig_input)
             retval = c("SeqScreener Input"=json_step$totalFragmentsInput, "SeqScreener Output"=json_step$totalFragmentsOutput, "SeqScreener Perc"=perc)
@@ -79,7 +79,7 @@ process_json <- function(sdir) {
     logfinal = read_file(paste0(mapping_dir,"/",sdir,"/",sdir,".Log.final.out"))
     lfall = str_match_all(logfinal,"(?s)Uniquely mapped reads number \\|\\t(\\d+)\\n.+Uniquely mapped reads \\% \\|\\t(.+?\\%).+Number of reads mapped to multiple loci \\|\\t(\\d+)\\n.+\\% of reads mapped to multiple loci \\|\\t(.+?\\%)")
     
-    lfm = c("Uniquely Mapped Reads"=lfall[[1]][,2], "Uniquely Mapped Perc"=lfall[[1]][,3], "Multi-Mapped Reads"=lfall[[1]][,4], "Multi-Mapped Perc"=lfall[[1]][,5])
+    lfm = c("Uniquely Mapped Reads"=lfall[[1]][,2], "Perc Uniquely Mapped"=lfall[[1]][,3], "Multi-Mapped Reads"=lfall[[1]][,4], "Perc Multi-Mapped"=lfall[[1]][,5])
     
     stats = c(stats,lfm)
     return(stats)
@@ -96,6 +96,14 @@ process_counts <- function(sid, colnum) {
 ###################
 sample_dirs = list.dirs(preproc_dir,full.names = F, recursive = F)
 final_stats = t(sapply(sample_dirs, process_json))
+
+#remove stats columns
+stats_cols = which(startsWith(colnames(final_stats),"Stats"))
+final_stats = final_stats[,-stats_cols]
+
+#figure out which column of counts to use
+#counts = read.table(paste0(mapping_dir,"/",sample_dirs[1],"/",sample_dirs[1],".ReadsPerGene.out.tab"),row.names = 1,skip = 4,sep='\t',stringsAsFactors = F)
+
 
 counts_all = sapply(sample_dirs,process_counts,colnum=strandcol[strandedness,])
 counts = read.table(paste0(mapping_dir,"/",sample_dirs[1],"/",sample_dirs[1],".ReadsPerGene.out.tab"),row.names = 1,skip = 4,sep='\t',stringsAsFactors = F)
@@ -144,6 +152,60 @@ for (i in seq(1,numcol,step)) {
 ```
 
 
+```{r}
+library(grid)
+library(gridExtra)
+
+calc_diffs <- function(input_nums,output_nums) {
+    rn_len = dim(input_nums)[1]
+    numsteps = dim(input_nums)[2]
+    
+    retval=c()
+    for (i in 1:numsteps) {
+        retval = append(retval,as.numeric(input_nums[,i]-output_nums[,i]))
+    }
+    
+    retval = append(retval,as.numeric(output_nums[,numsteps]))
+    return(retval)
+}
+
+input_colnums = which(endsWith(colnames(final_stats),"Input"))
+output_colnums = which(endsWith(colnames(final_stats),"Output"))
+input_nums = final_stats[,input_colnums]
+output_nums = final_stats[,output_colnums]
+mode(input_nums) <- "numeric"
+mode(output_nums) <- "numeric"
+
+rn = rownames(input_nums)
+rn_len = length(rn)
+numsteps = dim(input_nums)[2]
+samps = rep(rn,numsteps+1)
+columns = unlist(lapply(1:(numsteps+1), function(x) rep(x,rn_len)))
+diffs = calc_diffs(input_nums,output_nums)
+
+data=data.frame(samps,columns=factor(columns),diffs)
+labels = c(gsub(" Input","",colnames(final_stats)[input_colnums]), "Reads Remaining")
+
+if ("SeqScreener Recorded Contaminants" %in% colnames(final_stats)) {
+    contam = as.numeric(final_stats[,"SeqScreener Recorded Contaminants"])
+    dffs = data.frame(x=rownames(final_stats),y=contam/as.numeric(final_stats[,1]))
+
+    ggplot() + 
+      geom_bar(data=data, aes(fill=columns, y=diffs, x=samps), stat="identity", position="fill") + 
+      scale_fill_discrete(name="Preprocessing Steps\n(Dots are recorded\ncontaminant values)",labels=labels) +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+      xlab("Samples") + ylab("Fractions of all reads") +
+      geom_point(data=dffs, aes(x=x,y=y))
+} else {
+    ggplot(data, aes(fill=columns, y=diffs, x=samps)) + 
+      geom_bar(stat="identity", position="fill") + 
+      scale_fill_discrete(name="Preprocessing Steps",labels=labels) +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+      xlab("Samples") + ylab("Fractions of all reads")
+}
+```
+
+
 ## **<u>MDS Plot</u>**
 
 Multidimensional scaling (MDS) is a means of visualizing the level of similarity of individual cases of a dataset. MDS is used to translate information about the pairwise 'distances' among a set of n objects or individuals into a configuration of n points mapped onto a two-dimensional space.
@@ -151,6 +213,7 @@ Multidimensional scaling (MDS) is a means of visualizing the level of similarity
 ```{r, echo=FALSE}
 countdge = DGEList(counts_all)
 countdge = calcNormFactors(countdge)
+write.table(countdge, file="counts_all.normalized.out",sep='\t',quote=F,row.names=T)
 plotMDS(countdge, main="MDS Plot")
 ```
 
