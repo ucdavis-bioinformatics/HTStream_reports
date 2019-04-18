@@ -39,6 +39,7 @@ library(readr)
 library(stringr)
 library(edgeR)
 library(ggplot2)
+library(dplyr)
 
 process_step <- function(json_step,step_name,orig_input) {
     if (startsWith(step_name,"hts_Stats")) {
