@@ -6,7 +6,7 @@ output: html_notebook
 ```{r, echo=FALSE}
 ### SETTINGS ###
 # full path to working directory
-working_dir = "/share/biocore/joshi/projects/Dickinson_P_UCDVM/2019_choroid_plexus"
+working_dir = "/share/biocore/joshi/projects/SantaMaria_S_Nasa/April_2019_Yeast_RNA-Seq_part_2"
 # pre-processing directory name
 preproc_dir = "01-Cleaned"
 # suffix for pre-processing Log files
@@ -19,7 +19,7 @@ mapping_file_delimiter="."
 # sample names will be found from directory names in preproc_dir.
 samples_file=""
 # none, first, second
-strandedness = "none"
+strandedness = "first"
 ######################
 ```
 
@@ -202,21 +202,22 @@ labels = c(gsub(" Input","",colnames(final_stats)[input_colnums]), "Reads Remain
 
 if ("SeqScreener Recorded Contaminants" %in% colnames(final_stats)) {
     contam = as.numeric(final_stats[,"SeqScreener Recorded Contaminants"])
-    dffs = data.frame(x=rownames(final_stats),y=contam/as.numeric(final_stats[,1]))
+    dffs1 = data.frame(x=rownames(final_stats),y=contam/as.numeric(final_stats[,1]))
+    dffs2 = data.frame(x=rownames(final_stats),y=contam)
 
     p1 <- ggplot() + 
       geom_bar(data=data, aes(fill=columns, y=diffs, x=samps), stat="identity", position="fill") + 
       scale_fill_discrete(name="Preprocessing Steps\n(Dots are recorded\ncontaminant values)",labels=labels) +
       theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
       xlab("Samples") + ylab("Fractions of all reads") +
-      geom_point(data=dffs, aes(x=x,y=y))
+      geom_point(data=dffs1, aes(x=x,y=y))
     
     p2 <- ggplot() + 
       geom_bar(data=data, aes(fill=columns, y=diffs, x=samps), stat="identity") + 
       scale_fill_discrete(name="Preprocessing Steps\n(Dots are recorded\ncontaminant values)",labels=labels) +
       theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
       xlab("Samples") + ylab("Read counts") +
-      geom_point(data=dffs, aes(x=x,y=y))
+      geom_point(data=dffs2, aes(x=x,y=y))
     
     grid.arrange(p1,p2)
 } else {
