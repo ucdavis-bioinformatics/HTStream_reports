@@ -169,7 +169,7 @@ for (i in seq(1,numcol,step)) {
 ```
 
 
-```{r, echo=FALSE, fig.asp=1}
+```{r, echo=FALSE, fig.height=20}
 calc_diffs <- function(input_nums,output_nums) {
     rn_len = dim(input_nums)[1]
     numsteps = dim(input_nums)[2]
