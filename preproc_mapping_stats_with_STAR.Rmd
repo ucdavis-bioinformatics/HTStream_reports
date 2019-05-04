@@ -169,7 +169,7 @@ for (i in seq(1,numcol,step)) {
 ```
 
 
-```{r, echo=FALSE, fig.asp=1}
+```{r, echo=FALSE, fig.height=10, fig.width=10}
 calc_diffs <- function(input_nums,output_nums) {
     rn_len = dim(input_nums)[1]
     numsteps = dim(input_nums)[2]
@@ -206,17 +206,19 @@ if ("SeqScreener Recorded Contaminants" %in% colnames(final_stats)) {
 
     p1 <- ggplot() + 
       geom_bar(data=data, aes(fill=columns, y=diffs, x=samps), stat="identity", position="fill") + 
-      scale_fill_discrete(name="Preprocessing Steps\n(Dots are recorded\ncontaminant values)",labels=labels) +
+      scale_fill_discrete(name="Preprocessing Steps",labels=labels,guide = guide_legend(order = 1)) +
       theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
       xlab("Samples") + ylab("Fractions of all reads") +
-      geom_point(data=dffs, aes(x=x,y=y))
-    
+      geom_point(data=dffs, aes(x=x,y=y,colour = "Recorded\nContaminant\nValues")) +
+      scale_colour_manual(values = "black", name = "")
+
     p2 <- ggplot() + 
       geom_bar(data=data, aes(fill=columns, y=diffs, x=samps), stat="identity") + 
-      scale_fill_discrete(name="Preprocessing Steps\n(Dots are recorded\ncontaminant values)",labels=labels) +
+      scale_fill_discrete(name="Preprocessing Steps",labels=labels,guide = guide_legend(order = 1)) +
       theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
       xlab("Samples") + ylab("Read counts") +
-      geom_point(data=dffs, aes(x=x,y=y))
+      geom_point(data=dffs, aes(x=x,y=y,colour = "Recorded\nContaminant\nValues")) +
+      scale_colour_manual(values = "black", name = "")
     
     grid.arrange(p1,p2)
 } else {
