@@ -159,7 +159,7 @@ if ("SeqScreener Recorded Contaminants" %in% colnames(final_stats)) {
       scale_fill_discrete(name="Preprocessing Steps",labels=labels,guide = guide_legend(order = 1)) +
       theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
       xlab("Samples") + ylab("Fractions of all reads") +
-      geom_point(data=dffs, aes(x=x,y=y,colour = "Recorded\nContaminant\nValues")) +
+      geom_point(data=dffs1, aes(x=x,y=y,colour = "Recorded\nContaminant\nValues")) +
       scale_colour_manual(values = "black", name = "")
 
     p2 <- ggplot() + 
@@ -167,7 +167,7 @@ if ("SeqScreener Recorded Contaminants" %in% colnames(final_stats)) {
       scale_fill_discrete(name="Preprocessing Steps",labels=labels,guide = guide_legend(order = 1)) +
       theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
       xlab("Samples") + ylab("Read counts") +
-      geom_point(data=dffs, aes(x=x,y=y,colour = "Recorded\nContaminant\nValues")) +
+      geom_point(data=dffs2, aes(x=x,y=y,colour = "Recorded\nContaminant\nValues")) +
       scale_colour_manual(values = "black", name = "")
     
     grid.arrange(p1,p2)
