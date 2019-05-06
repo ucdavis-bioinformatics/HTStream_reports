@@ -11,6 +11,9 @@ working_dir = "/share/biocore/joshi/projects/Kol_A_UCD/Questa_ATAC_Seq_Canine_FU
 preproc_dir = "01-Cleaned"
 # suffix for pre-processing Log files
 preproc_suffix=".stats.log"
+# sample file name in working dir. If left empty,
+# sample names will be found from directory names in preproc_dir.
+samples_file=""
 ######################
 ```
 
