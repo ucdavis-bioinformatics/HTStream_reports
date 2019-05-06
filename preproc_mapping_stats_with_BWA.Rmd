@@ -5,9 +5,20 @@ output: html_notebook
 
 ```{r, echo=FALSE}
 ### SETTINGS ###
+# full path to working directory
 working_dir = "/share/biocore/joshi/projects/Kol_A_UCD/Questa_ATAC_Seq_Canine_FULL/3rd_library"
+# pre-processing directory name
 preproc_dir = "01-Cleaned"
+# suffix for pre-processing Log files
+preproc_suffix=".stats.log"
+# mapping directory name
 mapping_dir = "02-BWA"
+# log file and count file suffixes
+logfile_suffix = ".ALL.flagstat"
+countfile_suffix = ".ALL.counts"
+# sample file name in working dir. If left empty,
+# sample names will be found from directory names in preproc_dir.
+samples_file=""
 ######################
 ```
 
@@ -63,14 +74,14 @@ process_step <- function(json_step,step_name,orig_input) {
 }
 
 process_json <- function(sdir) { 
-    json <- fromJSON(paste0(preproc_dir,"/",sdir,"/",sdir,".stats.log"))
+    json <- fromJSON(paste0(preproc_dir,"/",sdir,"/",sdir,preproc_suffix))
     
     first_step = names(json)[1]
     orig_input = json[[first_step]]$totalFragmentsInput
     
     stats = unlist(lapply(names(json), function(x) process_step(json[[x]],x,orig_input)))
     
-    logfinal = read_file(paste0(mapping_dir,"/",sdir,"/",sdir,".ALL.flagstat"))
+    logfinal = read_file(paste0(mapping_dir,"/",sdir,"/",sdir,logfile_suffix))
     #lfall = str_match_all(logfinal,"Uniquely mapped reads number \\|\\t(\\d+)\\n.+Uniquely mapped reads \\% \\|\\t(.+\\%)")
     lfall = str_match_all(logfinal,"(\\d+) \\+ 0 mapped \\((.+\\%) :")
     
@@ -81,7 +92,7 @@ process_json <- function(sdir) {
 }
 
 process_counts <- function(sid, colnum) {
-  counts = read.table(paste0(mapping_dir,"/",sid,"/",sid,".ALL.counts"),row.names = 1,sep='\t',stringsAsFactors = F,header = F,skip=3)
+  counts = read.table(paste0(mapping_dir,"/",sid,"/",sid,countfile_suffix),row.names = 1,sep='\t',stringsAsFactors = F,header = F,skip=3)
   counts = counts[,6]
   return(counts)
 }
@@ -89,11 +100,21 @@ process_counts <- function(sid, colnum) {
 
 ```{r, echo=FALSE}
 ###################
-sample_dirs = list.dirs(preproc_dir,full.names = F, recursive = F)
+if (samples_file == "") {
+    sample_dirs = list.dirs(preproc_dir,full.names = F, recursive = F)
+} else {
+    sf = read.table(samples_file,header = F,stringsAsFactors = F)
+    sample_dirs = sf[,1]
+}
+
 final_stats = t(sapply(sample_dirs, process_json))
 
+#remove stats columns
+stats_cols = which(startsWith(colnames(final_stats),"Stats"))
+final_stats = final_stats[,-stats_cols]
+
 counts_all = sapply(sample_dirs,process_counts)
-counts = read.table(paste0(mapping_dir,"/",sample_dirs[1],"/",sample_dirs[1],".ALL.counts"),row.names = 1,sep='\t',stringsAsFactors = F,header=F,skip=3)
+counts = read.table(paste0(mapping_dir,"/",sample_dirs[1],"/",sample_dirs[1],countfile_suffix),row.names = 1,sep='\t',stringsAsFactors = F,header=F,skip=3)
 rownames(counts_all) = rownames(counts)
 
 rmg = as.matrix(colSums(counts_all), ncol=1)
@@ -136,6 +157,77 @@ for (i in seq(1,numcol,step)) {
   print(kable(final_stats[,i:endcol]) %>% kable_styling(bootstrap_options = c("striped", "hover")))
 }
 ```
+
+```{r, echo=FALSE, fig.height=10, fig.width=10}
+calc_diffs <- function(input_nums,output_nums) {
+    rn_len = dim(input_nums)[1]
+    numsteps = dim(input_nums)[2]
+    
+    retval=c()
+    for (i in 1:numsteps) {
+        retval = append(retval,as.numeric(input_nums[,i]-output_nums[,i]))
+    }
+    
+    retval = append(retval,as.numeric(output_nums[,numsteps]))
+    return(retval)
+}
+
+input_colnums = which(endsWith(colnames(final_stats),"Input"))
+output_colnums = which(endsWith(colnames(final_stats),"Output"))
+input_nums = final_stats[,input_colnums]
+output_nums = final_stats[,output_colnums]
+mode(input_nums) <- "numeric"
+mode(output_nums) <- "numeric"
+
+rn = rownames(input_nums)
+rn_len = length(rn)
+numsteps = dim(input_nums)[2]
+samps = rep(rn,numsteps+1)
+columns = unlist(lapply(1:(numsteps+1), function(x) rep(x,rn_len)))
+diffs = calc_diffs(input_nums,output_nums)
+
+data=data.frame(samps,columns=factor(columns),diffs)
+labels = c(gsub(" Input","",colnames(final_stats)[input_colnums]), "Reads Remaining")
+
+if ("SeqScreener Recorded Contaminants" %in% colnames(final_stats)) {
+    contam = as.numeric(final_stats[,"SeqScreener Recorded Contaminants"])
+    dffs1 = data.frame(x=rownames(final_stats),y=contam/as.numeric(final_stats[,1]))
+    dffs2 = data.frame(x=rownames(final_stats),y=contam)
+
+    p1 <- ggplot() + 
+      geom_bar(data=data, aes(fill=columns, y=diffs, x=samps), stat="identity", position="fill") + 
+      scale_fill_discrete(name="Preprocessing Steps",labels=labels,guide = guide_legend(order = 1)) +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+      xlab("Samples") + ylab("Fractions of all reads") +
+      geom_point(data=dffs, aes(x=x,y=y,colour = "Recorded\nContaminant\nValues")) +
+      scale_colour_manual(values = "black", name = "")
+
+    p2 <- ggplot() + 
+      geom_bar(data=data, aes(fill=columns, y=diffs, x=samps), stat="identity") + 
+      scale_fill_discrete(name="Preprocessing Steps",labels=labels,guide = guide_legend(order = 1)) +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+      xlab("Samples") + ylab("Read counts") +
+      geom_point(data=dffs, aes(x=x,y=y,colour = "Recorded\nContaminant\nValues")) +
+      scale_colour_manual(values = "black", name = "")
+    
+    grid.arrange(p1,p2)
+} else {
+    p1 <- ggplot(data, aes(fill=columns, y=diffs, x=samps)) + 
+      geom_bar(stat="identity", position="fill") + 
+      scale_fill_discrete(name="Preprocessing Steps",labels=labels) +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+      xlab("Samples") + ylab("Fractions of all reads")
+  
+    p2 <- ggplot(data, aes(fill=columns, y=diffs, x=samps)) + 
+      geom_bar(stat="identity") + 
+      scale_fill_discrete(name="Preprocessing Steps",labels=labels) +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+      xlab("Samples") + ylab("Fractions of all reads")
+    
+    grid.arrange(p1,p2)
+}
+```
+
 ## **<u>MDS Plot</u>**
 
 Multidimensional scaling (MDS) is a means of visualizing the level of similarity of individual cases of a dataset. MDS is used to translate information about the pairwise 'distances' among a set of n objects or individuals into a configuration of n points mapped onto a two-dimensional space.

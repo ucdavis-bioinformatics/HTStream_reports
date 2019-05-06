@@ -5,8 +5,12 @@ output: html_notebook
 
 ```{r, echo=FALSE}
 ### SETTINGS ###
-working_dir = "/share/biocore/joshi/projects/LaSalle_J_UCD/2018_LaSalle-Yasui_ChipSeq/test_umi"
+# full path to working directory
+working_dir = "/share/biocore/joshi/projects/Kol_A_UCD/Questa_ATAC_Seq_Canine_FULL/3rd_library"
+# pre-processing directory name
 preproc_dir = "01-Cleaned"
+# suffix for pre-processing Log files
+preproc_suffix=".stats.log"
 ######################
 ```
 
@@ -62,7 +66,7 @@ process_step <- function(json_step,step_name,orig_input) {
 }
 
 process_json <- function(sdir) { 
-    json <- fromJSON(paste0(preproc_dir,"/",sdir,"/",sdir,".stats.log"))
+    json <- fromJSON(paste0(preproc_dir,"/",sdir,"/",sdir,preproc_suffix))
     
     first_step = names(json)[1]
     orig_input = json[[first_step]]$totalFragmentsInput
@@ -74,7 +78,12 @@ process_json <- function(sdir) {
 
 ```{r, echo=FALSE}
 ###################
-sample_dirs = list.dirs(preproc_dir,full.names = F, recursive = F)
+if (samples_file == "") {
+    sample_dirs = list.dirs(preproc_dir,full.names = F, recursive = F)
+} else {
+    sf = read.table(samples_file,header = F,stringsAsFactors = F)
+    sample_dirs = sf[,1]
+}
 final_stats = t(sapply(sample_dirs, process_json))
 ###################
 ```
@@ -106,5 +115,75 @@ for (i in seq(1,numcol,step)) {
   }
   
   print(kable(final_stats[,i:endcol]) %>% kable_styling(bootstrap_options = c("striped", "hover")))
+}
+```
+
+```{r, echo=FALSE, fig.height=10, fig.width=10}
+calc_diffs <- function(input_nums,output_nums) {
+    rn_len = dim(input_nums)[1]
+    numsteps = dim(input_nums)[2]
+    
+    retval=c()
+    for (i in 1:numsteps) {
+        retval = append(retval,as.numeric(input_nums[,i]-output_nums[,i]))
+    }
+    
+    retval = append(retval,as.numeric(output_nums[,numsteps]))
+    return(retval)
+}
+
+input_colnums = which(endsWith(colnames(final_stats),"Input"))
+output_colnums = which(endsWith(colnames(final_stats),"Output"))
+input_nums = final_stats[,input_colnums]
+output_nums = final_stats[,output_colnums]
+mode(input_nums) <- "numeric"
+mode(output_nums) <- "numeric"
+
+rn = rownames(input_nums)
+rn_len = length(rn)
+numsteps = dim(input_nums)[2]
+samps = rep(rn,numsteps+1)
+columns = unlist(lapply(1:(numsteps+1), function(x) rep(x,rn_len)))
+diffs = calc_diffs(input_nums,output_nums)
+
+data=data.frame(samps,columns=factor(columns),diffs)
+labels = c(gsub(" Input","",colnames(final_stats)[input_colnums]), "Reads Remaining")
+
+if ("SeqScreener Recorded Contaminants" %in% colnames(final_stats)) {
+    contam = as.numeric(final_stats[,"SeqScreener Recorded Contaminants"])
+    dffs1 = data.frame(x=rownames(final_stats),y=contam/as.numeric(final_stats[,1]))
+    dffs2 = data.frame(x=rownames(final_stats),y=contam)
+
+    p1 <- ggplot() + 
+      geom_bar(data=data, aes(fill=columns, y=diffs, x=samps), stat="identity", position="fill") + 
+      scale_fill_discrete(name="Preprocessing Steps",labels=labels,guide = guide_legend(order = 1)) +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+      xlab("Samples") + ylab("Fractions of all reads") +
+      geom_point(data=dffs, aes(x=x,y=y,colour = "Recorded\nContaminant\nValues")) +
+      scale_colour_manual(values = "black", name = "")
+
+    p2 <- ggplot() + 
+      geom_bar(data=data, aes(fill=columns, y=diffs, x=samps), stat="identity") + 
+      scale_fill_discrete(name="Preprocessing Steps",labels=labels,guide = guide_legend(order = 1)) +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+      xlab("Samples") + ylab("Read counts") +
+      geom_point(data=dffs, aes(x=x,y=y,colour = "Recorded\nContaminant\nValues")) +
+      scale_colour_manual(values = "black", name = "")
+    
+    grid.arrange(p1,p2)
+} else {
+    p1 <- ggplot(data, aes(fill=columns, y=diffs, x=samps)) + 
+      geom_bar(stat="identity", position="fill") + 
+      scale_fill_discrete(name="Preprocessing Steps",labels=labels) +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+      xlab("Samples") + ylab("Fractions of all reads")
+  
+    p2 <- ggplot(data, aes(fill=columns, y=diffs, x=samps)) + 
+      geom_bar(stat="identity") + 
+      scale_fill_discrete(name="Preprocessing Steps",labels=labels) +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+      xlab("Samples") + ylab("Fractions of all reads")
+    
+    grid.arrange(p1,p2)
 }
 ```
