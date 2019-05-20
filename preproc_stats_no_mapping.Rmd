@@ -28,6 +28,9 @@ library(jsonlite)
 library(readr)
 library(stringr)
 library(edgeR)
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
 
 process_step <- function(json_step,step_name,orig_input) {
     if (startsWith(step_name,"hts_Stats")) {
