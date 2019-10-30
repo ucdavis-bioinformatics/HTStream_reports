@@ -21,7 +21,7 @@ samples_file=""
 knitr::opts_knit$set(root.dir = working_dir)
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, message=FALSE}
 library(knitr)
 library(kableExtra)
 library(jsonlite)
@@ -31,7 +31,11 @@ library(edgeR)
 library(ggplot2)
 library(dplyr)
 library(gridExtra)
+library(reshape2)
+library(egg)
+```
 
+```{r, echo=FALSE}
 process_step <- function(json_step,step_name,orig_input) {
     if (startsWith(step_name,"hts_Stats")) {
         perc = sprintf("%.02f%%",100*json_step$totalFragmentsOutput/orig_input)
@@ -79,6 +83,20 @@ process_json <- function(sdir) {
     
     stats = unlist(lapply(names(json), function(x) process_step(json[[x]],x,orig_input)))
     return(stats)
+}
+
+process_basecomp <- function(sdir) {
+    json <- fromJSON(read_file(paste0(preproc_dir,"/",sdir,"/",sdir,preproc_suffix)))
+    
+    first_step = names(json)[1]
+    pre_bases = json[[first_step]]$Base_composition
+    last_step = tail(names(json),n=1)
+    post_bases = json[[last_step]]$Base_composition
+    
+    basecomp = c(unlist(pre_bases),unlist(post_bases))
+    names(basecomp) = c("PreA","PreC","PreG","PreT","PreN","PostA","PostC","PostG","PostT","PostN")
+    
+    return(basecomp)
 }
 ```
 
@@ -192,4 +210,41 @@ if ("SeqScreener Recorded Contaminants" %in% colnames(final_stats)) {
     
     grid.arrange(p1,p2)
 }
+```
+
+## **<u>Base Composition</u>**
+```{r, fig.width=8, fig.height=6, echo=FALSE}
+basecomp = t(sapply(sample_dirs,process_basecomp))
+
+precomp = basecomp[,1:5]
+colnames(precomp) = c("A","C","G","T","N")
+precm = melt(precomp)
+colnames(precm) = c("Samples","Base","value")
+
+postcomp = basecomp[,6:ncol(basecomp)]
+colnames(postcomp) = c("A","C","G","T","N")
+postcm = melt(postcomp)
+colnames(postcm) = c("Samples","Base","value")
+
+p1 <- ggplot(precm, aes(fill=Base, x=Samples, y=value)) + 
+  geom_bar(position = "stack", stat="identity") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ylab("Base Composition") + ggtitle("Raw Base Composition")
+
+p2 <- ggplot(postcm, aes(fill=Base, x=Samples, y=value)) + 
+  geom_bar(position = "stack", stat="identity") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ylab("Base Composition") + ggtitle("Processed Base Composition")
+
+p3 <- ggplot(precm, aes(fill=Base, x=Samples, y=value)) + 
+  geom_bar(position = "fill", stat="identity") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ylab("Base Composition") + ggtitle("Raw Base Composition (Perc)")
+
+p4 <- ggplot(postcm, aes(fill=Base, x=Samples, y=value)) + 
+  geom_bar(position = "fill", stat="identity") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ylab("Base Composition") + ggtitle("Processed Base Composition (Perc)")
+
+ggarrange(p1,p2,p3,p4)
 ```

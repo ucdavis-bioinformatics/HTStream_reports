@@ -80,7 +80,7 @@ process_step <- function(json_step,step_name,orig_input) {
 }
 
 process_json <- function(sdir) { 
-    json <- fromJSON(paste0(preproc_dir,"/",sdir,"/",sdir,preproc_suffix))
+    json <- fromJSON(read_file(paste0(preproc_dir,"/",sdir,"/",sdir,preproc_suffix)))
     
     first_step = names(json)[1]
     orig_input = json[[first_step]]$totalFragmentsInput
@@ -104,7 +104,7 @@ process_counts <- function(sid, colnum) {
 }
 
 process_basecomp <- function(sdir) {
-    json <- fromJSON(paste0(preproc_dir,"/",sdir,"/",sdir,preproc_suffix))
+    json <- fromJSON(read_file(paste0(preproc_dir,"/",sdir,"/",sdir,preproc_suffix)))
     
     first_step = names(json)[1]
     pre_bases = json[[first_step]]$Base_composition
