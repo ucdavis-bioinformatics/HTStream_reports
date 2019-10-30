@@ -283,7 +283,7 @@ p4 <- ggplot(postcm, aes(fill=Base, x=Samples, y=value)) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   ylab("Base Composition") + ggtitle("Processed Base Composition (Perc)")
 
-ggarrange(p1,p2,p3,p4)
+grid.arrange(p1,p2,p3,p4,ncol=2)
 ```
 
 ## **<u>MDS Plot</u>**
