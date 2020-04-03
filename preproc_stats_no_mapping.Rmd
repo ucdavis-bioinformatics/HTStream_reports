@@ -128,7 +128,7 @@ Preprocessing was done using the [HTStream](https://ibest.github.io/HTStream/) s
 The "Uniquely Mapped Reads", "Uniquely Mapped Perc", "Multi-Mapped Reads", and "Multi-Mapped Perc" columns are all taken from the log files of the aligner. Finally, the "Reads Mapped to Genes", and "Perc Reads Mapped to Genes" columns are calculated from the files of count data and original input numbers.
 
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, results="asis"}
 numcol = dim(final_stats)[2]
 step=6
 for (i in seq(1,numcol,step)) {
