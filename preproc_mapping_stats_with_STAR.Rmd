@@ -6,13 +6,13 @@ output: html_notebook
 ```{r, echo=FALSE}
 ### SETTINGS ###
 # full path to working directory
-working_dir = "/share/biocore/joshi/projects/Oblessuc_Pph_transcriptome_Oct_2019"
+working_dir = "/share/biocore/joshi/projects/Measles_Rhesus_Tag-Seq"
 # pre-processing directory name
 preproc_dir = "01-Cleaned"
 # suffix for pre-processing Log files
 preproc_suffix=".stats.log"
 # mapping directory name
-mapping_dir = "02-STAR_gtf"
+mapping_dir = "02-STAR"
 # delimiter between sample name and suffix for mapping files
 mapping_file_delimiter="."
 # sample file name in working dir. If left empty,
