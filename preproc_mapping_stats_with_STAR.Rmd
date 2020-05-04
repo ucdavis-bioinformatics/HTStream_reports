@@ -18,6 +18,9 @@ mapping_file_delimiter="."
 # sample file name in working dir. If left empty,
 # sample names will be found from directory names in preproc_dir.
 samples_file=""
+# strandedness, 0 = deduce from counts, 1 = unstranded, 
+# 2 = forward strand, 3 = reverse strand
+strandcol = 0
 ######################
 ```
 
@@ -133,14 +136,16 @@ final_stats = t(sapply(sample_dirs, process_json))
 stats_cols = which(startsWith(colnames(final_stats),"Stats"))
 final_stats = final_stats[,-stats_cols]
 
-# figure out which column to use
-counts = read.table(paste0(mapping_dir,"/",sample_dirs[1],"/",sample_dirs[1],mapping_file_delimiter,"ReadsPerGene.out.tab"),row.names = 1,skip = 4,sep='\t',stringsAsFactors = F)
-ccs <- colSums(counts)
-if (ccs[1]/ccs[3] > 5 || ccs[1]/ccs[2] > 5) {
-    ## appears to be stranded, so pick the one with the most reads
-    strandcol = which.max(ccs[2:3])+1
-} else { ## appears to be not stranded, choose column 1 (both)
-    strandcol = 1
+if (strandcol == 0) {
+    # figure out which column to use
+    counts = read.table(paste0(mapping_dir,"/",sample_dirs[1],"/",sample_dirs[1],mapping_file_delimiter,"ReadsPerGene.out.tab"),row.names = 1,skip = 4,sep='\t',stringsAsFactors = F)
+    ccs <- colSums(counts)
+    if (ccs[1]/ccs[3] > 5 || ccs[1]/ccs[2] > 5) {
+        ## appears to be stranded, so pick the one with the most reads
+        strandcol = which.max(ccs[2:3])+1
+    } else { ## appears to be not stranded, choose column 1 (both)
+        strandcol = 1
+    }
 }
 
 counts_all = sapply(sample_dirs,process_counts,colnum=strandcol)
@@ -311,3 +316,18 @@ write.table(tmp, file = "normalized_counts.txt", quote = F, sep = "\t", row.name
 plotMDS(countdge, main="MDS Plot",cex=0.8)
 ```
 
+```{r, echo=FALSE}
+sessionInfo()
+
+if (strandcol == 1) {
+    strand_type = "unstranded"
+} else if (strandcol == 2) {
+    strand_type = "forward strand"
+} else if (strandcol == 3) {
+    strand_type = "reverse strand"
+}
+write("**********CHECK IF CORRECT***************", stderr())
+write(paste("Strandedness:",strand_type), stderr())
+write("*****************************************", stderr())
+
+```

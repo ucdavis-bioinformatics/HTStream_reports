@@ -295,4 +295,7 @@ countdge = DGEList(counts_all)
 countdge = calcNormFactors(countdge)
 plotMDS(countdge, main="MDS Plot")
 ```
+```{r, echo=FALSE}
+sessionInfo()
+```
 
